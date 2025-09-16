@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Brain Bank CSV Chat Agent</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background-color: #0f172a;
+        color: #e2e8f0;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+      }
+
+      h1 {
+        margin-top: 0;
+        font-size: 2rem;
+      }
+
+      section {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.45);
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      input[type="file"],
+      input[type="text"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        padding: 0.65rem 0.75rem;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        background: rgba(15, 23, 42, 0.7);
+        color: inherit;
+      }
+
+      input[type="file"] {
+        padding: 0.4rem 0.75rem;
+      }
+
+      button {
+        background: linear-gradient(135deg, #38bdf8, #6366f1);
+        color: #0f172a;
+        border: none;
+        border-radius: 999px;
+        padding: 0.7rem 1.5rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
+      }
+
+      pre {
+        background: rgba(15, 23, 42, 0.7);
+        padding: 1rem;
+        border-radius: 10px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .status-grid {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        margin: 0.25rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.16);
+      }
+
+      footer {
+        text-align: center;
+        color: rgba(148, 163, 184, 0.8);
+        font-size: 0.85rem;
+        margin-top: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>🧠 Brain Bank CSV Chat Agent</h1>
+      <p>
+        Load any CSV, tell the agent which columns contain text, and ask grounded
+        questions. Results are retrieved with TF-IDF embeddings and FAISS.
+      </p>
+
+      <section>
+        <h2>1. Load CSV</h2>
+        <form id="upload-form">
+          <label for="csv-file">CSV file</label>
+          <input id="csv-file" name="file" type="file" accept=".csv" required />
+
+          <label for="text-columns">Text columns (comma separated, optional)</label>
+          <input
+            id="text-columns"
+            name="text_columns"
+            type="text"
+            placeholder="e.g. question,answer"
+          />
+
+          <label for="metadata-columns">Metadata columns (comma separated, optional)</label>
+          <input
+            id="metadata-columns"
+            name="metadata_columns"
+            type="text"
+            placeholder="e.g. id,category"
+          />
+
+          <button type="submit">Load CSV</button>
+        </form>
+        <div id="upload-status"></div>
+      </section>
+
+      <section>
+        <h2>2. Ask a question</h2>
+        <form id="ask-form">
+          <label for="question">Question</label>
+          <textarea
+            id="question"
+            name="question"
+            rows="3"
+            placeholder="What does this CSV say about ...?"
+            required
+          ></textarea>
+
+          <label for="top-k">How many matches?</label>
+          <input id="top-k" name="top_k" type="number" value="3" min="1" max="20" />
+
+          <button type="submit">Ask</button>
+        </form>
+        <div id="answer"></div>
+      </section>
+
+      <section>
+        <h2>Dataset status</h2>
+        <div id="status" class="status-grid">No dataset loaded yet.</div>
+      </section>
+
+      <footer>
+        Built for rapid CSV exploration. All answers come directly from your CSV.
+      </footer>
+    </main>
+
+    <script>
+      const uploadForm = document.getElementById("upload-form");
+      const askForm = document.getElementById("ask-form");
+      const statusEl = document.getElementById("status");
+      const uploadStatus = document.getElementById("upload-status");
+      const answerEl = document.getElementById("answer");
+
+      uploadForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const formData = new FormData(uploadForm);
+
+        uploadStatus.textContent = "Loading...";
+        answerEl.textContent = "";
+
+        try {
+          const response = await fetch("/load_csv", {
+            method: "POST",
+            body: formData,
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "Unable to load CSV");
+          }
+
+          uploadStatus.innerHTML = `<strong>${payload.message}</strong>`;
+          renderStatus(payload);
+        } catch (error) {
+          uploadStatus.innerHTML = `<span style="color: #f87171;">${error.message}</span>`;
+        }
+      });
+
+      askForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const question = document.getElementById("question").value;
+        const topK = Number(document.getElementById("top-k").value || 3);
+
+        answerEl.innerHTML = "Thinking...";
+
+        try {
+          const response = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question, top_k: topK }),
+          });
+
+          const payload = await response.json();
+          if (!response.ok) {
+            throw new Error(payload.detail || "Unable to get an answer");
+          }
+
+          const matches = payload.matches
+            .map(
+              (match) =>
+                `<pre><strong>score:</strong> ${match.score.toFixed(3)}\n<strong>row:</strong> ${match.row_index}\n<strong>text:</strong> ${match.text}\n<strong>metadata:</strong> ${JSON.stringify(match.metadata, null, 2)}</pre>`
+            )
+            .join("");
+
+          answerEl.innerHTML = `<pre>${payload.answer}</pre>${matches}`;
+        } catch (error) {
+          answerEl.innerHTML = `<span style="color: #f87171;">${error.message}</span>`;
+        }
+      });
+
+      async function fetchStatus() {
+        try {
+          const response = await fetch("/status");
+          if (!response.ok) {
+            throw new Error("No dataset loaded yet.");
+          }
+          const payload = await response.json();
+          renderStatus(payload);
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      }
+
+      function renderStatus(payload) {
+        const columns = (payload.columns || []).map((col) => `<span class="pill">${col}</span>`).join("");
+        const textCols = (payload.text_columns || [])
+          .map((col) => `<span class="pill">${col}</span>`)
+          .join("");
+        const metadataCols = (payload.metadata_columns || [])
+          .map((col) => `<span class="pill">${col}</span>`)
+          .join("");
+
+        statusEl.innerHTML = `
+          <div><strong>Rows:</strong> ${payload.rows}</div>
+          <div><strong>Columns:</strong> ${columns || "<em>None</em>"}</div>
+          <div><strong>Text columns:</strong> ${textCols || "<em>Auto detected</em>"}</div>
+          <div><strong>Metadata columns:</strong> ${metadataCols || "<em>Auto detected</em>"}</div>
+        `;
+      }
+
+      fetchStatus();
+    </script>
+  </body>
+</html>
