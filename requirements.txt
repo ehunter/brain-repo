@@ -4,3 +4,6 @@ pandas==2.2.1
 scikit-learn==1.4.1.post1
 faiss-cpu==1.11.0
 python-multipart==0.0.9
+openai==1.54.0
+sqlalchemy==2.0.36
+python-dotenv==1.0.1

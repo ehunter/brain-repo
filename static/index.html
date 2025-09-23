@@ -2,270 +2,1242 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Brain Bank CSV Chat Agent</title>
+    <title>Brain Research AI Agent</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background-color: #0f172a;
-        color: #e2e8f0;
+        /* Untitled UI inspired color system */
+        --gray-25: #fcfcfd;
+        --gray-50: #f9fafb;
+        --gray-100: #f2f4f7;
+        --gray-200: #eaecf0;
+        --gray-300: #d0d5dd;
+        --gray-400: #98a2b3;
+        --gray-500: #667085;
+        --gray-600: #475467;
+        --gray-700: #344054;
+        --gray-800: #1d2939;
+        --gray-900: #101828;
+
+        --primary-25: #fcfaff;
+        --primary-50: #f9f5ff;
+        --primary-100: #f4ebff;
+        --primary-200: #e9d7fe;
+        --primary-300: #d6bbfb;
+        --primary-400: #b692f6;
+        --primary-500: #9e77ed;
+        --primary-600: #7f56d9;
+        --primary-700: #6941c6;
+        --primary-800: #53389e;
+        --primary-900: #42307d;
+
+        --success-25: #f6fef9;
+        --success-50: #ecfdf3;
+        --success-100: #d1fadf;
+        --success-500: #12b76a;
+        --success-600: #039855;
+
+        --error-25: #fffbfa;
+        --error-50: #fef3f2;
+        --error-100: #fee4e2;
+        --error-500: #f04438;
+        --error-600: #d92d20;
+
+        /* Typography */
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+        /* Layout */
+        --sidebar-width: 320px;
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
+        --radius-xl: 12px;
+        --radius-2xl: 16px;
+
+        /* Shadows */
+        --shadow-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+        --shadow-sm: 0px 1px 2px 0px rgba(16, 24, 40, 0.06), 0px 1px 3px 0px rgba(16, 24, 40, 0.10);
+        --shadow-md: 0px 2px 4px -2px rgba(16, 24, 40, 0.06), 0px 4px 8px -2px rgba(16, 24, 40, 0.10);
+        --shadow-lg: 0px 4px 6px -2px rgba(16, 24, 40, 0.03), 0px 12px 16px -4px rgba(16, 24, 40, 0.08);
+        --shadow-xl: 0px 8px 8px -4px rgba(16, 24, 40, 0.03), 0px 20px 24px -4px rgba(16, 24, 40, 0.08);
+
+        /* Theme colors */
+        background-color: var(--gray-25);
+        color: var(--gray-900);
+      }
+
+      /* Dark mode colors */
+      [data-theme="dark"] {
+        --gray-25: #0c111d;
+        --gray-50: #0f172a;
+        --gray-100: #1e293b;
+        --gray-200: #334155;
+        --gray-300: #475569;
+        --gray-400: #64748b;
+        --gray-500: #94a3b8;
+        --gray-600: #cbd5e1;
+        --gray-700: #e2e8f0;
+        --gray-800: #f1f5f9;
+        --gray-900: #f8fafc;
+
+        --primary-25: #1a0b2e;
+        --primary-50: #2d1b3d;
+        --primary-100: #3d2352;
+        --primary-200: #4c2a63;
+        --primary-300: #7c3aed;
+        --primary-400: #8b5cf6;
+        --primary-500: #a855f7;
+        --primary-600: #9333ea;
+        --primary-700: #7c3aed;
+        --primary-800: #6d28d9;
+        --primary-900: #5b21b6;
+
+        /* Dark mode shadows */
+        --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.2);
+        --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.25), 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0px 2px 4px -2px rgba(0, 0, 0, 0.25), 0px 4px 8px -2px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0px 4px 6px -2px rgba(0, 0, 0, 0.15), 0px 12px 16px -4px rgba(0, 0, 0, 0.25);
+        --shadow-xl: 0px 8px 8px -4px rgba(0, 0, 0, 0.15), 0px 20px 24px -4px rgba(0, 0, 0, 0.25);
+
+        /* Theme colors for dark mode */
+        background-color: var(--gray-50);
+        color: var(--gray-900);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
       body {
-        margin: 0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
       }
 
-      main {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 2rem 1.5rem 4rem;
+      .sidebar {
+        width: var(--sidebar-width);
+        background: var(--gray-50);
+        border-right: 1px solid var(--gray-200);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
       }
 
-      h1 {
-        margin-top: 0;
-        font-size: 2rem;
+      .sidebar-header {
+        padding: 24px;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-25);
       }
 
-      section {
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.45);
-      }
-
-      label {
-        display: block;
+      .sidebar-title {
+        font-size: 18px;
         font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 8px;
+        line-height: 28px;
+      }
+
+      .sidebar-subtitle {
+        font-size: 14px;
+        color: var(--gray-600);
+        line-height: 20px;
+        font-weight: 400;
+      }
+
+      .new-chat-btn {
+        background: var(--primary-600);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 16px;
+        width: 100%;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-xs);
+      }
+
+      .new-chat-btn:hover {
+        background: var(--primary-700);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .new-chat-btn:active {
+        transform: translateY(1px);
+      }
+
+      .chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .chat-history-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        background: var(--gray-25);
+      }
+
+      .chat-history-item:hover {
+        background: var(--primary-25);
+        border-color: var(--primary-200);
+        box-shadow: var(--shadow-xs);
+      }
+
+      .chat-history-item.active {
+        background: var(--primary-50);
+        border-color: var(--primary-300);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .chat-title {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 4px;
+        line-height: 20px;
+        color: var(--gray-900);
+      }
+
+      .chat-preview {
+        font-size: 12px;
+        color: var(--gray-500);
+        line-height: 18px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .chat-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-25);
+        box-shadow: var(--shadow-xs);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .header-content {
+        flex: 1;
+      }
+
+      .theme-toggle {
+        background: var(--gray-100);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--gray-700);
+        box-shadow: var(--shadow-xs);
+      }
+
+      .theme-toggle:hover {
+        background: var(--gray-200);
+        border-color: var(--gray-300);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .theme-toggle-icon {
+        font-size: 16px;
+        transition: transform 0.2s ease;
+      }
+
+      [data-theme="dark"] .theme-toggle {
+        background: var(--gray-200);
+        border-color: var(--gray-300);
+        color: var(--gray-800);
+      }
+
+      [data-theme="dark"] .theme-toggle:hover {
+        background: var(--gray-300);
+        border-color: var(--gray-400);
+      }
+
+      .chat-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--gray-900);
+        margin-bottom: 8px;
+        line-height: 32px;
+      }
+
+      .chat-stats {
+        font-size: 14px;
+        color: var(--gray-600);
+        display: flex;
+        gap: 32px;
+        flex-wrap: wrap;
+      }
+
+      .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stat-number {
+        font-weight: 600;
+        color: var(--primary-600);
+      }
+
+      .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        background: var(--gray-25);
+      }
+
+      .message {
+        max-width: 85%;
+        padding: 16px 20px;
+        border-radius: var(--radius-2xl);
+        line-height: 24px;
+        word-wrap: break-word;
+        box-shadow: var(--shadow-xs);
+      }
+
+      .message.user {
+        align-self: flex-end;
+        background: var(--primary-600);
+        color: white;
+        border: 1px solid var(--primary-600);
+      }
+
+      .message.ai {
+        align-self: flex-start;
+        background: var(--gray-25);
+        border: 1px solid var(--gray-200);
+        color: var(--gray-900);
+      }
+
+      .message-header {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        opacity: 0.8;
+      }
+
+      .message-content {
+        font-size: 14px;
+        line-height: 20px;
+      }
+
+      .specimen-result {
+        background: var(--gray-25);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin: 0.75rem 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .specimen-result:hover {
+        background: var(--gray-50);
+        border-color: var(--primary-300);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .specimen-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        color: var(--accent-color);
         margin-bottom: 0.5rem;
       }
 
-      input[type="file"],
-      input[type="text"],
-      input[type="number"],
-      textarea {
-        width: 100%;
-        border-radius: 8px;
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        padding: 0.65rem 0.75rem;
-        font-size: 1rem;
+      .expand-icon {
+        font-size: 1.2rem;
+        transition: transform 0.2s ease;
+        color: var(--gray-500);
+      }
+
+      .specimen-result.expanded .expand-icon {
+        transform: rotate(180deg);
+      }
+
+      .specimen-summary {
+        font-size: 0.9rem;
+        color: var(--gray-600);
+        line-height: 1.4;
+      }
+
+      .specimen-details {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        font-size: 0.85rem;
+      }
+
+      .specimen-result.expanded .specimen-details {
+        max-height: 1000px;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--gray-200);
+      }
+
+      .detail-section {
         margin-bottom: 1rem;
-        background: rgba(15, 23, 42, 0.7);
-        color: inherit;
       }
 
-      input[type="file"] {
-        padding: 0.4rem 0.75rem;
+      .detail-section:last-child {
+        margin-bottom: 0;
       }
 
-      button {
-        background: linear-gradient(135deg, #38bdf8, #6366f1);
-        color: #0f172a;
-        border: none;
-        border-radius: 999px;
-        padding: 0.7rem 1.5rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      .detail-section-title {
+        font-weight: 600;
+        color: var(--primary-700);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
-      button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 30px rgba(56, 189, 248, 0.25);
-      }
-
-      pre {
-        background: rgba(15, 23, 42, 0.7);
-        padding: 1rem;
-        border-radius: 10px;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-
-      .status-grid {
+      .detail-grid {
         display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 0.5rem;
       }
 
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.75rem;
-        margin: 0.25rem;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.16);
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid var(--gray-200);
       }
 
-      footer {
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-label {
+        font-weight: 600;
+        color: var(--gray-600);
+      }
+
+      .chat-input-container {
+        padding: 1.5rem 2rem;
+        border-top: 1px solid var(--gray-200);
+        background: var(--gray-25);
+      }
+
+      .chat-input-form {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+      }
+
+      .chat-input {
+        flex: 1;
+        background: var(--gray-50);
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-lg);
+        padding: 1rem 1.25rem;
+        color: var(--gray-900);
+        font-size: 1rem;
+        resize: none;
+        min-height: 60px;
+        max-height: 120px;
+        outline: none;
+        transition: border-color 0.2s ease;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .chat-input:focus {
+        border-color: var(--primary-600);
+        box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05), 0px 0px 0px 4px rgba(127, 86, 217, 0.12);
+      }
+
+      .chat-input::placeholder {
+        color: var(--gray-500);
+      }
+
+      .send-btn {
+        background: var(--primary-600);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .send-btn:hover:not(:disabled) {
+        background: var(--primary-700);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .welcome-message {
         text-align: center;
-        color: rgba(148, 163, 184, 0.8);
-        font-size: 0.85rem;
+        padding: 3rem 2rem;
+        color: var(--gray-600);
+      }
+
+      .welcome-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--primary-700);
+      }
+
+      .welcome-examples {
         margin-top: 2rem;
+        text-align: left;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .example-query {
+        background: var(--gray-25);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.9rem;
+      }
+
+      .example-query:hover {
+        background: var(--gray-50);
+        border-color: var(--primary-300);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .typing-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 1.25rem;
+        background: var(--ai-message-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        align-self: flex-start;
+        max-width: 200px;
+      }
+
+      .typing-dots {
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out;
+      }
+
+      .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+      .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+      @keyframes typing {
+        0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+        40% { transform: scale(1); opacity: 1; }
+      }
+
+      .summary-stats {
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          display: none;
+        }
+
+        .main-content {
+          width: 100%;
+        }
+
+        .chat-header {
+          padding: 1rem;
+        }
+
+        .chat-messages {
+          padding: 1rem;
+        }
+
+        .chat-input-container {
+          padding: 1rem;
+        }
+
+        .message {
+          max-width: 95%;
+        }
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>🧠 Brain Bank CSV Chat Agent</h1>
-      <p>
-        Load any CSV, tell the agent which columns contain text, and ask grounded
-        questions. Results are retrieved with TF-IDF embeddings and FAISS.
-      </p>
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">🧠 Brain Research AI</div>
+        <div class="sidebar-subtitle">Explore 17,869+ brain specimens with natural language queries</div>
+        <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
+      </div>
+      <div class="chat-history" id="chat-history">
+        <!-- Chat history items will be populated here -->
+      </div>
+    </div>
 
-      <section>
-        <h2>1. Load CSV</h2>
-        <form id="upload-form">
-          <label for="csv-file">CSV file</label>
-          <input id="csv-file" name="file" type="file" accept=".csv" required />
+    <div class="main-content">
+      <div class="chat-header">
+        <div class="header-content">
+          <h1>Brain Research AI Agent</h1>
+          <div class="chat-stats" id="chat-stats">
+            <div class="stat-item">
+              <span class="stat-number" id="total-specimens">Loading...</span>
+              <span>Total Specimens</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number" id="total-repositories">-</span>
+              <span>Repositories</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number" id="avg-age">-</span>
+              <span>Avg Age</span>
+            </div>
+          </div>
+        </div>
+        <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+          <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+          <span id="theme-text">Dark</span>
+        </button>
+      </div>
 
-          <label for="text-columns">Text columns (comma separated, optional)</label>
-          <input
-            id="text-columns"
-            name="text_columns"
-            type="text"
-            placeholder="e.g. question,answer"
-          />
+      <div class="chat-messages" id="chat-messages">
+        <div class="welcome-message">
+          <div class="welcome-title">Welcome to Brain Research AI</div>
+          <p>Ask me anything about our brain research database. I can help you find specimens, analyze demographics, explore clinical data, and more.</p>
 
-          <label for="metadata-columns">Metadata columns (comma separated, optional)</label>
-          <input
-            id="metadata-columns"
-            name="metadata_columns"
-            type="text"
-            placeholder="e.g. id,category"
-          />
+          <div class="welcome-examples">
+            <div><strong>Try asking me:</strong></div>
+            <div class="example-query" onclick="sendExampleQuery(this)">
+              Show me male specimens over 60 with Alzheimer's diagnosis
+            </div>
+            <div class="example-query" onclick="sendExampleQuery(this)">
+              Find brain specimens from HBCC with good RNA quality
+            </div>
+            <div class="example-query" onclick="sendExampleQuery(this)">
+              What's the demographic breakdown of our database?
+            </div>
+            <div class="example-query" onclick="sendExampleQuery(this)">
+              Show me specimens with post-mortem interval under 12 hours
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <button type="submit">Load CSV</button>
-        </form>
-        <div id="upload-status"></div>
-      </section>
-
-      <section>
-        <h2>2. Ask a question</h2>
-        <form id="ask-form">
-          <label for="question">Question</label>
+      <div class="chat-input-container">
+        <form class="chat-input-form" id="chat-form">
           <textarea
-            id="question"
-            name="question"
-            rows="3"
-            placeholder="What does this CSV say about ...?"
+            class="chat-input"
+            id="chat-input"
+            placeholder="Ask me about brain research data..."
+            rows="1"
             required
           ></textarea>
-
-          <label for="top-k">How many matches?</label>
-          <input id="top-k" name="top_k" type="number" value="3" min="1" max="20" />
-
-          <button type="submit">Ask</button>
+          <button type="submit" class="send-btn" id="send-btn">Send</button>
         </form>
-        <div id="answer"></div>
-      </section>
-
-      <section>
-        <h2>Dataset status</h2>
-        <div id="status" class="status-grid">No dataset loaded yet.</div>
-      </section>
-
-      <footer>
-        Built for rapid CSV exploration. All answers come directly from your CSV.
-      </footer>
-    </main>
+      </div>
+    </div>
 
     <script>
-      const uploadForm = document.getElementById("upload-form");
-      const askForm = document.getElementById("ask-form");
-      const statusEl = document.getElementById("status");
-      const uploadStatus = document.getElementById("upload-status");
-      const answerEl = document.getElementById("answer");
+      let chatHistory = JSON.parse(localStorage.getItem('brainChatHistory') || '[]');
+      let currentChatId = null;
+      let currentChat = [];
+      let messageCounter = 0;
 
-      uploadForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const formData = new FormData(uploadForm);
-
-        uploadStatus.textContent = "Loading...";
-        answerEl.textContent = "";
-
+      // Load database stats
+      async function loadStats() {
         try {
-          const response = await fetch("/load_csv", {
-            method: "POST",
-            body: formData,
-          });
+          const response = await fetch("/brain/stats");
+          const stats = await response.json();
 
-          const payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload.detail || "Unable to load CSV");
-          }
-
-          uploadStatus.innerHTML = `<strong>${payload.message}</strong>`;
-          renderStatus(payload);
+          document.getElementById('total-specimens').textContent = stats.total_specimens.toLocaleString();
+          document.getElementById('total-repositories').textContent = stats.repositories.length;
+          document.getElementById('avg-age').textContent = stats.average_age ? stats.average_age.toFixed(1) + ' years' : 'N/A';
         } catch (error) {
-          uploadStatus.innerHTML = `<span style="color: #f87171;">${error.message}</span>`;
-        }
-      });
-
-      askForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const question = document.getElementById("question").value;
-        const topK = Number(document.getElementById("top-k").value || 3);
-
-        answerEl.innerHTML = "Thinking...";
-
-        try {
-          const response = await fetch("/ask", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question, top_k: topK }),
-          });
-
-          const payload = await response.json();
-          if (!response.ok) {
-            throw new Error(payload.detail || "Unable to get an answer");
-          }
-
-          const matches = payload.matches
-            .map(
-              (match) =>
-                `<pre><strong>score:</strong> ${match.score.toFixed(3)}\n<strong>row:</strong> ${match.row_index}\n<strong>text:</strong> ${match.text}\n<strong>metadata:</strong> ${JSON.stringify(match.metadata, null, 2)}</pre>`
-            )
-            .join("");
-
-          answerEl.innerHTML = `<pre>${payload.answer}</pre>${matches}`;
-        } catch (error) {
-          answerEl.innerHTML = `<span style="color: #f87171;">${error.message}</span>`;
-        }
-      });
-
-      async function fetchStatus() {
-        try {
-          const response = await fetch("/status");
-          if (!response.ok) {
-            throw new Error("No dataset loaded yet.");
-          }
-          const payload = await response.json();
-          renderStatus(payload);
-        } catch (error) {
-          statusEl.textContent = error.message;
+          console.error('Failed to load stats:', error);
         }
       }
 
-      function renderStatus(payload) {
-        const columns = (payload.columns || []).map((col) => `<span class="pill">${col}</span>`).join("");
-        const textCols = (payload.text_columns || [])
-          .map((col) => `<span class="pill">${col}</span>`)
-          .join("");
-        const metadataCols = (payload.metadata_columns || [])
-          .map((col) => `<span class="pill">${col}</span>`)
-          .join("");
+      // Initialize chat
+      function initializeChat() {
+        loadStats();
+        renderChatHistory();
 
-        statusEl.innerHTML = `
-          <div><strong>Rows:</strong> ${payload.rows}</div>
-          <div><strong>Columns:</strong> ${columns || "<em>None</em>"}</div>
-          <div><strong>Text columns:</strong> ${textCols || "<em>Auto detected</em>"}</div>
-          <div><strong>Metadata columns:</strong> ${metadataCols || "<em>Auto detected</em>"}</div>
+        // Auto-resize textarea
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Handle form submission
+        document.getElementById('chat-form').addEventListener('submit', handleChatSubmit);
+      }
+
+      // Handle chat form submission
+      async function handleChatSubmit(event) {
+        event.preventDefault();
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Clear input and reset height
+        input.value = '';
+        input.style.height = 'auto';
+
+        // Add user message
+        addMessage('user', message);
+
+        // Show typing indicator
+        showTypingIndicator();
+
+        try {
+          // Process the query
+          await processQuery(message);
+        } catch (error) {
+          removeTypingIndicator();
+          addMessage('ai', 'Sorry, I encountered an error processing your request. Please try again.');
+        }
+      }
+
+      // Add message to chat
+      function addMessage(sender, content, isHTML = false) {
+        const messagesContainer = document.getElementById('chat-messages');
+
+        // Remove welcome message if it exists
+        const welcomeMsg = messagesContainer.querySelector('.welcome-message');
+        if (welcomeMsg) {
+          welcomeMsg.remove();
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        headerDiv.textContent = sender === 'user' ? 'You' : 'Brain Research AI';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        if (isHTML) {
+          contentDiv.innerHTML = content;
+        } else {
+          contentDiv.textContent = content;
+        }
+
+        messageDiv.appendChild(headerDiv);
+        messageDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(messageDiv);
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Add to current chat
+        currentChat.push({ sender, content, timestamp: Date.now() });
+
+        // Save to history if this is a new chat
+        if (currentChat.length === 2) { // User message + AI response
+          saveChatToHistory();
+        }
+      }
+
+      // Show typing indicator
+      function showTypingIndicator() {
+        const messagesContainer = document.getElementById('chat-messages');
+
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typing-indicator';
+
+        typingDiv.innerHTML = `
+          <span>Brain Research AI is thinking</span>
+          <div class="typing-dots">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        `;
+
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // Remove typing indicator
+      function removeTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      // Process natural language query
+      async function processQuery(query) {
+        // For now, we'll use some simple keyword matching to convert to API calls
+        // In a real implementation, you might use an LLM to parse the query
+
+        const params = parseQuery(query);
+
+        try {
+          const response = await fetch(`/brain/specimens?${params.toString()}&explain=true`);
+          const data = await response.json();
+
+          removeTypingIndicator();
+
+          if (!response.ok) {
+            throw new Error(data.detail || 'Search failed');
+          }
+
+          // Format response
+          let responseText = `Found ${data.total_count.toLocaleString()} specimens matching your query.`;
+
+          if (data.explanation) {
+            responseText += `\n\n💡 **Analysis:** ${data.explanation}`;
+          }
+
+          // Add specimen details if any found
+          if (data.specimens.length > 0) {
+            responseText += `\n\nHere are the first ${Math.min(data.specimens.length, 5)} results:`;
+
+            let responseHTML = responseText.replace(/\n/g, '<br>');
+
+            data.specimens.slice(0, 5).forEach((specimen, index) => {
+              const uniqueId = `specimen-${Date.now()}-${index}`;
+              responseHTML += createSpecimenCard(specimen, uniqueId);
+            });
+
+            if (data.total_count > 5) {
+              responseHTML += `<br><em>... and ${(data.total_count - 5).toLocaleString()} more specimens</em>`;
+            }
+
+            addMessage('ai', responseHTML, true);
+          } else {
+            addMessage('ai', responseText + '\n\nTry adjusting your search criteria to find more specimens.');
+          }
+
+        } catch (error) {
+          removeTypingIndicator();
+          addMessage('ai', `I couldn't process your query: ${error.message}`);
+        }
+      }
+
+      // Simple query parser (in a real app, you'd use NLP/LLM)
+      function parseQuery(query) {
+        const params = new URLSearchParams();
+        const lowerQuery = query.toLowerCase();
+
+        // Age patterns
+        if (lowerQuery.includes('over') || lowerQuery.includes('older than') || lowerQuery.includes('above')) {
+          const ageMatch = lowerQuery.match(/(?:over|older than|above)\s+(\d+)/);
+          if (ageMatch) params.append('age_min', ageMatch[1]);
+        }
+
+        if (lowerQuery.includes('under') || lowerQuery.includes('younger than') || lowerQuery.includes('below')) {
+          const ageMatch = lowerQuery.match(/(?:under|younger than|below)\s+(\d+)/);
+          if (ageMatch) params.append('age_max', ageMatch[1]);
+        }
+
+        // Sex
+        if (lowerQuery.includes('male') && !lowerQuery.includes('female')) {
+          params.append('subject_sex', 'Male');
+        } else if (lowerQuery.includes('female') && !lowerQuery.includes('male')) {
+          params.append('subject_sex', 'Female');
+        }
+
+        // Diagnosis keywords
+        const diagnosisTerms = ['alzheimer', 'dementia', 'depression', 'bipolar', 'schizophrenia', 'anxiety'];
+        for (const term of diagnosisTerms) {
+          if (lowerQuery.includes(term)) {
+            params.append('diagnosis_contains', term);
+            break;
+          }
+        }
+
+        // Repository
+        const repositories = ['hbcc', 'miami', 'mt. sinai', 'harvard', 'adrc', 'pittsburgh'];
+        for (const repo of repositories) {
+          if (lowerQuery.includes(repo)) {
+            params.append('repository', repo);
+            break;
+          }
+        }
+
+        // Brain region
+        const brainRegions = ['frontal', 'temporal', 'parietal', 'occipital', 'hippocampus', 'amygdala'];
+        for (const region of brainRegions) {
+          if (lowerQuery.includes(region)) {
+            params.append('brain_region_contains', region);
+            break;
+          }
+        }
+
+        // RNA quality
+        if (lowerQuery.includes('good rna') || lowerQuery.includes('high quality rna') || lowerQuery.includes('rin')) {
+          params.append('rin_min', '6.0');
+        }
+
+        // PMI
+        if (lowerQuery.includes('pmi') || lowerQuery.includes('post-mortem interval') || lowerQuery.includes('postmortem')) {
+          const pmiMatch = lowerQuery.match(/(?:under|below|less than)\s+(\d+)\s*(?:hours?)?/);
+          if (pmiMatch) {
+            params.append('pmi_max', pmiMatch[1]);
+          }
+        }
+
+        // Default limit
+        params.append('limit', '25');
+
+        return params;
+      }
+
+      // Save chat to history
+      function saveChatToHistory() {
+        if (currentChat.length === 0) return;
+
+        const chatTitle = currentChat[0].content.substring(0, 50) + (currentChat[0].content.length > 50 ? '...' : '');
+        const newChat = {
+          id: Date.now(),
+          title: chatTitle,
+          messages: [...currentChat],
+          timestamp: Date.now()
+        };
+
+        chatHistory.unshift(newChat);
+
+        // Keep only last 50 chats
+        if (chatHistory.length > 50) {
+          chatHistory = chatHistory.slice(0, 50);
+        }
+
+        localStorage.setItem('brainChatHistory', JSON.stringify(chatHistory));
+        renderChatHistory();
+      }
+
+      // Render chat history in sidebar
+      function renderChatHistory() {
+        const historyContainer = document.getElementById('chat-history');
+
+        if (chatHistory.length === 0) {
+          historyContainer.innerHTML = '<div style="color: var(--gray-600); text-align: center; padding: 1rem; font-size: 0.9rem;">No chat history yet</div>';
+          return;
+        }
+
+        historyContainer.innerHTML = chatHistory.map(chat => `
+          <div class="chat-history-item ${chat.id === currentChatId ? 'active' : ''}" onclick="loadChat(${chat.id})">
+            <div class="chat-title">${chat.title}</div>
+            <div class="chat-preview">${new Date(chat.timestamp).toLocaleDateString()}</div>
+          </div>
+        `).join('');
+      }
+
+      // Load a chat from history
+      function loadChat(chatId) {
+        const chat = chatHistory.find(c => c.id === chatId);
+        if (!chat) return;
+
+        currentChatId = chatId;
+        currentChat = [...chat.messages];
+
+        // Clear current messages
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.innerHTML = '';
+
+        // Reload messages
+        chat.messages.forEach(msg => {
+          addMessage(msg.sender, msg.content, msg.sender === 'ai' && msg.content.includes('<div'));
+        });
+
+        renderChatHistory();
+      }
+
+      // Start new chat
+      function startNewChat() {
+        currentChatId = null;
+        currentChat = [];
+
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.innerHTML = `
+          <div class="welcome-message">
+            <div class="welcome-title">New Chat Started</div>
+            <p>Ask me anything about our brain research database.</p>
+          </div>
+        `;
+
+        renderChatHistory();
+      }
+
+      // Send example query
+      function sendExampleQuery(element) {
+        const query = element.textContent.trim();
+        document.getElementById('chat-input').value = query;
+        document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+      }
+
+      // Create expandable specimen card
+      function createSpecimenCard(specimen, uniqueId) {
+        const demographicsSummary = [
+          specimen.subject_sex || 'Unknown sex',
+          specimen.subject_age ? `${specimen.subject_age} years` : 'Unknown age',
+          specimen.race || 'Unknown race'
+        ].join(', ');
+
+        return `
+          <div class="specimen-result" id="${uniqueId}" onclick="toggleSpecimen('${uniqueId}')">
+            <div class="specimen-header">
+              <div>
+                <div>Subject ${specimen.subject_id} (${specimen.repository || 'Unknown Repository'})</div>
+              </div>
+              <div class="expand-icon">▼</div>
+            </div>
+            <div class="specimen-summary">
+              ${demographicsSummary} • ${specimen.manner_of_death || 'Unknown manner of death'}
+            </div>
+            <div class="specimen-details">
+              <div class="detail-section">
+                <div class="detail-section-title">Demographics</div>
+                <div class="detail-grid">
+                  <div class="detail-row">
+                    <span class="detail-label">Sex:</span>
+                    <span>${specimen.subject_sex || 'Not specified'}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Age:</span>
+                    <span>${specimen.subject_age ? specimen.subject_age + ' years' : 'Not specified'}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Race:</span>
+                    <span>${specimen.race || 'Not specified'}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Ethnicity:</span>
+                    <span>${specimen.ethnicity || 'Not specified'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-section">
+                <div class="detail-section-title">Clinical Information</div>
+                <div class="detail-grid">
+                  <div class="detail-row">
+                    <span class="detail-label">Manner of Death:</span>
+                    <span>${specimen.manner_of_death || 'Not specified'}</span>
+                  </div>
+                  ${specimen.neuropathology_diagnosis ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Neuropathology Diagnosis:</span>
+                      <span>${specimen.neuropathology_diagnosis}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.clinical_brain_diagnosis ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Clinical Brain Diagnosis:</span>
+                      <span>${specimen.clinical_brain_diagnosis}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.genetic_diagnosis ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Genetic Diagnosis:</span>
+                      <span>${specimen.genetic_diagnosis}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.non_brain_diagnosis ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Non-Brain Diagnosis:</span>
+                      <span>${specimen.non_brain_diagnosis}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              <div class="detail-section">
+                <div class="detail-section-title">Tissue Information</div>
+                <div class="detail-grid">
+                  ${specimen.brain_region ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Brain Regions:</span>
+                      <span>${specimen.brain_region.length > 150 ? specimen.brain_region.substring(0, 150) + '...' : specimen.brain_region}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.pmi_hours ? `
+                    <div class="detail-row">
+                      <span class="detail-label">PMI (Post-mortem Interval):</span>
+                      <span>${specimen.pmi_hours} hours</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.rin ? `
+                    <div class="detail-row">
+                      <span class="detail-label">RIN (RNA Integrity):</span>
+                      <span>${specimen.rin}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.preparation ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Preparation:</span>
+                      <span>${specimen.preparation}</span>
+                    </div>
+                  ` : ''}
+                  ${specimen.tissue_source ? `
+                    <div class="detail-row">
+                      <span class="detail-label">Tissue Source:</span>
+                      <span>${specimen.tissue_source}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              ${(specimen.thal_phase || specimen.braak_nft_stage || specimen.cerad_score || specimen.adnc || specimen.lewy_pathology) ? `
+                <div class="detail-section">
+                  <div class="detail-section-title">Pathology Scores</div>
+                  <div class="detail-grid">
+                    ${specimen.thal_phase && specimen.thal_phase !== 'No Results Reported' ? `
+                      <div class="detail-row">
+                        <span class="detail-label">Thal Phase:</span>
+                        <span>${specimen.thal_phase}</span>
+                      </div>
+                    ` : ''}
+                    ${specimen.braak_nft_stage && specimen.braak_nft_stage !== 'No Results Reported' ? `
+                      <div class="detail-row">
+                        <span class="detail-label">Braak NFT Stage:</span>
+                        <span>${specimen.braak_nft_stage}</span>
+                      </div>
+                    ` : ''}
+                    ${specimen.cerad_score && specimen.cerad_score !== 'No Results Reported' ? `
+                      <div class="detail-row">
+                        <span class="detail-label">CERAD Score:</span>
+                        <span>${specimen.cerad_score}</span>
+                      </div>
+                    ` : ''}
+                    ${specimen.adnc && specimen.adnc !== 'No Results Reported' ? `
+                      <div class="detail-row">
+                        <span class="detail-label">ADNC:</span>
+                        <span>${specimen.adnc}</span>
+                      </div>
+                    ` : ''}
+                    ${specimen.lewy_pathology && specimen.lewy_pathology !== 'No Results Reported' ? `
+                      <div class="detail-row">
+                        <span class="detail-label">Lewy Pathology:</span>
+                        <span>${specimen.lewy_pathology}</span>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ''}
+
+              ${specimen.created_at ? `
+                <div class="detail-section">
+                  <div class="detail-section-title">Record Information</div>
+                  <div class="detail-grid">
+                    <div class="detail-row">
+                      <span class="detail-label">Created:</span>
+                      <span>${new Date(specimen.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
         `;
       }
 
-      fetchStatus();
+      // Toggle specimen expansion
+      function toggleSpecimen(specimenId) {
+        const specimenCard = document.getElementById(specimenId);
+        if (specimenCard) {
+          specimenCard.classList.toggle('expanded');
+        }
+      }
+
+      // Dark mode toggle functionality
+      function toggleTheme() {
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+      }
+
+      function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        updateToggleButton(theme);
+      }
+
+      function updateToggleButton(theme) {
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+
+        if (theme === 'dark') {
+          themeIcon.textContent = '☀️';
+          themeText.textContent = 'Light';
+        } else {
+          themeIcon.textContent = '🌙';
+          themeText.textContent = 'Dark';
+        }
+      }
+
+      function initializeTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        setTheme(theme);
+      }
+
+      // Initialize theme and chat on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeTheme();
+        initializeChat();
+      });
     </script>
   </body>
 </html>
