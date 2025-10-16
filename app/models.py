@@ -29,6 +29,8 @@ class Match(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     matches: List[Match]
+    follow_up_suggestions: Optional[List[str]] = None
+    data_insights: Optional[List[str]] = None
 
 
 class ErrorResponse(BaseModel):
@@ -89,6 +91,9 @@ class BrainSpecimenModel(BaseModel):
 
 
 class BrainQueryRequest(BaseModel):
+    # Identifiers
+    subject_id: Optional[str] = Field(None, description="Filter by subject ID (partial match)")
+
     # Demographics
     race: Optional[str] = Field(None, description="Filter by race (partial match)")
     subject_sex: Optional[str] = Field(None, description="Filter by sex (Male/Female)")
@@ -120,6 +125,8 @@ class BrainQueryResponse(BaseModel):
     total_count: int
     query_summary: str
     explanation: Optional[str] = None
+    follow_up_suggestions: Optional[List[str]] = None
+    data_insights: Optional[List[str]] = None
 
 
 class BrainStatsResponse(BaseModel):

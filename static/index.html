@@ -589,6 +589,60 @@
         font-size: 0.9rem;
       }
 
+      .follow-up-suggestions {
+        background: var(--success-25);
+        border: 1px solid var(--success-500);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+
+      .follow-up-suggestions .example-query {
+        background: var(--success-50);
+        border: 1px solid var(--success-600);
+        color: var(--success-600);
+        font-weight: 500;
+        margin: 0.25rem 0;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .follow-up-suggestions .example-query:hover {
+        background: var(--success-100);
+        border-color: var(--success-600);
+        color: var(--success-600);
+      }
+
+      /* Dark mode styles for follow-up suggestions */
+      [data-theme="dark"] .follow-up-suggestions {
+        background: rgba(18, 183, 106, 0.1);
+        border-color: rgba(18, 183, 106, 0.3);
+        color: var(--gray-600);
+      }
+
+      [data-theme="dark"] .follow-up-suggestions .example-query {
+        background: rgba(18, 183, 106, 0.15);
+        border-color: rgba(18, 183, 106, 0.4);
+        color: var(--gray-600);
+        font-weight: 600;
+      }
+
+      [data-theme="dark"] .follow-up-suggestions .example-query:hover {
+        background: rgba(18, 183, 106, 0.25);
+        border-color: rgba(18, 183, 106, 0.6);
+        color: var(--gray-700);
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-1px);
+      }
+
+      /* Dark mode styles for summary stats */
+      [data-theme="dark"] .summary-stats {
+        background: rgba(56, 189, 248, 0.15);
+        border-color: rgba(56, 189, 248, 0.4);
+        color: var(--gray-600);
+      }
+
       @media (max-width: 768px) {
         .sidebar {
           display: none;
@@ -661,6 +715,9 @@
           <div class="welcome-examples">
             <div><strong>Try asking me:</strong></div>
             <div class="example-query" onclick="sendExampleQuery(this)">
+              Find Subject NIH1000
+            </div>
+            <div class="example-query" onclick="sendExampleQuery(this)">
               Show me male specimens over 60 with Alzheimer's diagnosis
             </div>
             <div class="example-query" onclick="sendExampleQuery(this)">
@@ -668,9 +725,6 @@
             </div>
             <div class="example-query" onclick="sendExampleQuery(this)">
               What's the demographic breakdown of our database?
-            </div>
-            <div class="example-query" onclick="sendExampleQuery(this)">
-              Show me specimens with post-mortem interval under 12 hours
             </div>
           </div>
         </div>
@@ -824,11 +878,84 @@
         }
       }
 
-      // Process natural language query
+      // Process natural language query using enhanced AI system
       async function processQuery(query) {
-        // For now, we'll use some simple keyword matching to convert to API calls
-        // In a real implementation, you might use an LLM to parse the query
+        try {
+          // First try the enhanced natural language /ask endpoint
+          const askResponse = await fetch('/ask', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              question: query,
+              natural_language: true,
+              top_k: 5
+            })
+          });
 
+          const askData = await askResponse.json();
+
+          removeTypingIndicator();
+
+          if (askResponse.ok) {
+            // Enhanced response with natural language, follow-ups, and insights
+            let responseHTML = askData.answer.replace(/\n/g, '<br>');
+
+            // Add data insights if available
+            if (askData.data_insights && askData.data_insights.length > 0) {
+              responseHTML += '<br><br><div class="summary-stats">📊 <strong>Data Insights:</strong><br>';
+              askData.data_insights.forEach(insight => {
+                responseHTML += `• ${insight}<br>`;
+              });
+              responseHTML += '</div>';
+            }
+
+            // Create specimen cards from matches
+            if (askData.matches && askData.matches.length > 0) {
+              responseHTML += '<br><strong>Specimen Details:</strong>';
+
+              askData.matches.forEach((match, index) => {
+                const uniqueId = `specimen-${Date.now()}-${index}`;
+                // Convert match metadata to specimen format
+                const specimen = {
+                  subject_id: match.metadata.subject_id || 'Unknown',
+                  repository: match.metadata.repository || 'Unknown',
+                  subject_sex: match.metadata.subject_sex,
+                  subject_age: match.metadata.subject_age,
+                  race: match.metadata.race,
+                  // Add other fields as needed
+                };
+                responseHTML += createSpecimenCard(specimen, uniqueId);
+              });
+            }
+
+            // Add follow-up suggestions if available
+            if (askData.follow_up_suggestions && askData.follow_up_suggestions.length > 0) {
+              responseHTML += '<br><div class="follow-up-suggestions"><strong>💡 Try these follow-up queries:</strong><br>';
+              askData.follow_up_suggestions.forEach(suggestion => {
+                responseHTML += `<div class="example-query" onclick="sendFollowUpQuery('${suggestion}')">💬 ${suggestion}</div>`;
+              });
+              responseHTML += '</div>';
+            }
+
+            addMessage('ai', responseHTML, true);
+            return;
+          }
+
+          // Fallback to original brain specimens API if /ask fails
+          console.log('Natural language API failed, falling back to brain specimens API');
+          await processQueryFallback(query);
+
+        } catch (error) {
+          removeTypingIndicator();
+          console.log('Enhanced query failed, trying fallback:', error);
+          await processQueryFallback(query);
+        }
+      }
+
+      // Fallback to original brain specimens API
+      async function processQueryFallback(query) {
         const params = parseQuery(query);
 
         try {
@@ -1022,6 +1149,12 @@
       // Send example query
       function sendExampleQuery(element) {
         const query = element.textContent.trim();
+        document.getElementById('chat-input').value = query;
+        document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+      }
+
+      // Send follow-up query from suggestions
+      function sendFollowUpQuery(query) {
         document.getElementById('chat-input').value = query;
         document.getElementById('chat-form').dispatchEvent(new Event('submit'));
       }

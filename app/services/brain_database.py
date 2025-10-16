@@ -72,6 +72,9 @@ class BrainSpecimen(Base):
 
 @dataclass
 class BrainQueryFilter:
+    # Identifiers
+    subject_id: Optional[str] = None  # Exact or partial subject ID match
+
     # Demographics
     race: Optional[str] = None
     subject_sex: Optional[str] = None
@@ -225,6 +228,11 @@ class BrainDatabaseService:
 
         # Apply filters
         conditions = []
+
+        if filters.subject_id:
+            query = query.filter(BrainSpecimen.subject_id.ilike(f"%{filters.subject_id}%"))
+            count_query = count_query.filter(BrainSpecimen.subject_id.ilike(f"%{filters.subject_id}%"))
+            conditions.append(f"subject ID contains '{filters.subject_id}'")
 
         if filters.race:
             query = query.filter(BrainSpecimen.race.ilike(f"%{filters.race}%"))

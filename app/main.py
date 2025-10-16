@@ -16,6 +16,7 @@ from app.models import (
 )
 from app.services.brain_bank import BrainBank, BrainBankError
 from app.services.llm_service import LLMService, LLMServiceError
+from app.services.enhanced_llm_service import EnhancedLLMService, EnhancedLLMServiceError
 from app.services.database import DatabaseService, QueryFilter
 from app.services.brain_database import BrainDatabaseService, BrainQueryFilter
 
@@ -36,6 +37,7 @@ brain_bank = BrainBank()
 llm_service = LLMService()
 db_service = DatabaseService()
 brain_db_service = BrainDatabaseService()
+enhanced_llm_service = None  # Will be initialized after brain_db_service is ready
 
 
 @app.on_event("startup")
@@ -56,6 +58,11 @@ async def startup_event():
         try:
             brain_db_service.load_csv_data(brain_csv_path)
             print(f"✅ Brain database initialized from {brain_csv_path}")
+
+            # Initialize enhanced LLM service after brain database is ready
+            global enhanced_llm_service
+            enhanced_llm_service = EnhancedLLMService(brain_db_service)
+            print(f"✅ Enhanced LLM service initialized")
         except Exception as e:
             print(f"❌ Failed to initialize brain database: {e}")
     else:
@@ -123,6 +130,60 @@ async def status() -> LoadResponse:
 
 @app.post("/ask", response_model=AskResponse, responses={400: {"model": ErrorResponse}})
 async def ask(request: AskRequest) -> AskResponse:
+    # First check if this is a brain research query and handle it directly
+    if request.natural_language and enhanced_llm_service and enhanced_llm_service.is_available:
+        try:
+            # Check if this looks like a brain research query
+            query_analysis = enhanced_llm_service.analyze_query(request.question)
+
+            # If confidence is high or we detect research-specific terms, try brain database search
+            if (query_analysis.confidence > 0.5 or
+                query_analysis.subject_ids or
+                query_analysis.clinical_terms or
+                query_analysis.brain_regions or
+                any(term in request.question.lower() for term in ['subject', 'specimen', 'brain', 'nih', 'repository'])):
+
+                print(f"DEBUG: Using brain database for query: {request.question}")
+                print(f"DEBUG: Query analysis - Subject IDs: {query_analysis.subject_ids}, Confidence: {query_analysis.confidence}")
+
+                # Search brain database with analyzed filters
+                brain_results = brain_db_service.query_specimens(query_analysis.filters)
+
+                print(f"DEBUG: Brain database found {brain_results.total_count} results")
+
+                # Generate enhanced response
+                enhanced_response = enhanced_llm_service.generate_enhanced_response(
+                    request.question, query_analysis, brain_results.__dict__
+                )
+
+                # Create simplified matches from brain results for compatibility
+                brain_matches = []
+                for i, specimen in enumerate(brain_results.specimens[:request.top_k]):
+                    brain_matches.append(Match(
+                        score=1.0 - (i * 0.1),  # Simple scoring
+                        row_index=i,
+                        text=f"Subject {specimen['subject_id']}: {specimen['subject_sex']}, age {specimen['subject_age']}, {specimen['race']}",
+                        metadata={
+                            'subject_id': specimen['subject_id'],
+                            'repository': specimen['repository'],
+                            'race': specimen['race'],
+                            'subject_sex': specimen['subject_sex'],
+                            'subject_age': specimen['subject_age']
+                        }
+                    ))
+
+                return AskResponse(
+                    answer=enhanced_response.answer,
+                    matches=brain_matches,  # Use brain database results
+                    follow_up_suggestions=enhanced_response.follow_up_suggestions,
+                    data_insights=enhanced_response.data_insights
+                )
+        except Exception as e:
+            print(f"Enhanced LLM service failed, falling back to CSV brain bank: {e}")
+            import traceback
+            traceback.print_exc()
+
+    # Fallback to original CSV-based brain bank
     try:
         # For natural language responses, retrieve more matches for better accuracy
         # The LLM service will intelligently chunk based on token limits
@@ -152,30 +213,33 @@ async def ask(request: AskRequest) -> AskResponse:
     matches = [Match(**match) for match in converted_matches]
 
     # Generate natural language response if requested and available
-    if request.natural_language and llm_service.is_available:
-        try:
-            natural_answer = llm_service.generate_natural_response(
-                request.question, result["matches"]
-            )
-            return AskResponse(answer=natural_answer, matches=matches)
-        except LLMServiceError as e:
-            # Check for specific quota/billing issues
-            error_msg = str(e).lower()
-            print(f"DEBUG: LLMServiceError caught: {e}")  # Debug logging
-            if "quota" in error_msg or "insufficient_quota" in error_msg or "rate limit" in error_msg:
-                structured_answer = result["answer"]
-                quota_notice = "⚠️ Natural language responses are temporarily unavailable due to OpenAI API quota limits. Please check your OpenAI billing settings. Here are the structured results:\n\n"
-                return AskResponse(answer=quota_notice + structured_answer, matches=matches)
-            else:
-                # Fall back to structured response for other LLM errors
-                structured_answer = result["answer"]
-                error_notice = f"⚠️ Natural language responses are temporarily unavailable (OpenAI API error: {str(e)}). Here are the structured results:\n\n"
-                return AskResponse(answer=error_notice + structured_answer, matches=matches)
-    elif request.natural_language and not llm_service.is_available:
-        # Inform user that natural language is not available
-        structured_answer = result["answer"]
-        unavailable_notice = "Natural language responses are not available (OpenAI API key not configured). Here are the structured results:\n\n"
-        return AskResponse(answer=unavailable_notice + structured_answer, matches=matches)
+    if request.natural_language:
+
+        # Fallback to regular LLM service for CSV-based queries
+        if llm_service.is_available:
+            try:
+                natural_answer = llm_service.generate_natural_response(
+                    request.question, result["matches"]
+                )
+                return AskResponse(answer=natural_answer, matches=matches)
+            except LLMServiceError as e:
+                # Check for specific quota/billing issues
+                error_msg = str(e).lower()
+                print(f"DEBUG: LLMServiceError caught: {e}")  # Debug logging
+                if "quota" in error_msg or "insufficient_quota" in error_msg or "rate limit" in error_msg:
+                    structured_answer = result["answer"]
+                    quota_notice = "⚠️ Natural language responses are temporarily unavailable due to OpenAI API quota limits. Please check your OpenAI billing settings. Here are the structured results:\n\n"
+                    return AskResponse(answer=quota_notice + structured_answer, matches=matches)
+                else:
+                    # Fall back to structured response for other LLM errors
+                    structured_answer = result["answer"]
+                    error_notice = f"⚠️ Natural language responses are temporarily unavailable (OpenAI API error: {str(e)}). Here are the structured results:\n\n"
+                    return AskResponse(answer=error_notice + structured_answer, matches=matches)
+        else:
+            # Inform user that natural language is not available
+            structured_answer = result["answer"]
+            unavailable_notice = "Natural language responses are not available (OpenAI API key not configured). Here are the structured results:\n\n"
+            return AskResponse(answer=unavailable_notice + structured_answer, matches=matches)
 
     return AskResponse(answer=result["answer"], matches=matches)
 
@@ -331,6 +395,7 @@ async def get_database_stats() -> DatabaseStatsResponse:
 
 @app.get("/brain/specimens", response_model=BrainQueryResponse, responses={400: {"model": ErrorResponse}})
 async def query_brain_specimens(
+    subject_id: Optional[str] = None,
     race: Optional[str] = None,
     subject_sex: Optional[str] = None,
     age_min: Optional[int] = None,
@@ -349,6 +414,7 @@ async def query_brain_specimens(
     try:
         # Create filter object
         filters = BrainQueryFilter(
+            subject_id=subject_id,
             race=race,
             subject_sex=subject_sex,
             age_min=age_min,
@@ -373,13 +439,55 @@ async def query_brain_specimens(
             specimens=specimens,
             total_count=result.total_count,
             query_summary=result.query_summary,
-            explanation=None
+            explanation=None,
+            follow_up_suggestions=None,
+            data_insights=None
         )
 
-        # Optional LLM explanation
-        if explain and llm_service.is_available and result.specimens:
+        # Optional enhanced response generation
+        if explain and enhanced_llm_service and enhanced_llm_service.is_available:
             try:
-                # Format specimens for LLM (limit to first 10 for brevity)
+                # Use enhanced LLM service for better insights
+                query_analysis = enhanced_llm_service.analyze_query(result.query_summary)
+                enhanced_response = enhanced_llm_service.generate_enhanced_response(
+                    result.query_summary, query_analysis, result.__dict__
+                )
+                response.explanation = enhanced_response.answer
+                response.follow_up_suggestions = enhanced_response.follow_up_suggestions
+                response.data_insights = enhanced_response.data_insights
+            except Exception as e:
+                print(f"Enhanced LLM explanation failed: {e}")
+                # Fallback to regular LLM
+                if llm_service.is_available and result.specimens:
+                    try:
+                        # Format specimens for LLM (limit to first 10 for brevity)
+                        sample_specimens = result.specimens[:10]
+                        specimens_text = "\n".join([
+                            f"- Subject {s['subject_id']}: {s['subject_sex']}, {s['subject_age']} years old, {s['race']}, {s['manner_of_death']}"
+                            for s in sample_specimens if s.get('subject_id')
+                        ])
+
+                        prompt = f"""Based on the following brain research query results, provide a brief, natural language summary:
+
+Query: {result.query_summary}
+
+Sample Results:
+{specimens_text}
+
+Provide a 1-2 sentence summary of the research cohort and any notable patterns in demographics or clinical characteristics."""
+
+                        explanation = llm_service._client.chat.completions.create(  # type: ignore
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=150,
+                            temperature=0.7,
+                        )
+                        response.explanation = explanation.choices[0].message.content.strip()
+                    except Exception as e:
+                        print(f"Fallback LLM explanation failed: {e}")
+        elif explain and llm_service.is_available and result.specimens:
+            try:
+                # Regular LLM fallback
                 sample_specimens = result.specimens[:10]
                 specimens_text = "\n".join([
                     f"- Subject {s['subject_id']}: {s['subject_sex']}, {s['subject_age']} years old, {s['race']}, {s['manner_of_death']}"
@@ -418,6 +526,7 @@ async def query_brain_specimens_post(request: BrainQueryRequest) -> BrainQueryRe
     try:
         # Create filter object
         filters = BrainQueryFilter(
+            subject_id=request.subject_id,
             race=request.race,
             subject_sex=request.subject_sex,
             age_min=request.age_min,
@@ -444,13 +553,70 @@ async def query_brain_specimens_post(request: BrainQueryRequest) -> BrainQueryRe
             specimens=specimens,
             total_count=result.total_count,
             query_summary=result.query_summary,
-            explanation=None
+            explanation=None,
+            follow_up_suggestions=None,
+            data_insights=None
         )
 
-        # Optional LLM explanation
-        if request.explain and llm_service.is_available and result.specimens:
+        # Optional enhanced response generation
+        if request.explain and enhanced_llm_service and enhanced_llm_service.is_available:
             try:
-                # Format specimens for LLM (limit to first 10 for brevity)
+                # Create a query from the request for enhanced processing
+                query_parts = []
+                if request.subject_id: query_parts.append(f"subject ID {request.subject_id}")
+                if request.race: query_parts.append(f"race {request.race}")
+                if request.subject_sex: query_parts.append(f"sex {request.subject_sex}")
+                if request.age_min or request.age_max:
+                    if request.age_min and request.age_max:
+                        query_parts.append(f"age {request.age_min} to {request.age_max}")
+                    elif request.age_min:
+                        query_parts.append(f"age {request.age_min} and older")
+                    elif request.age_max:
+                        query_parts.append(f"age {request.age_max} and younger")
+                if request.diagnosis_contains: query_parts.append(f"diagnosis {request.diagnosis_contains}")
+
+                query_text = "Find specimens with " + ", ".join(query_parts) if query_parts else "Show all specimens"
+
+                query_analysis = enhanced_llm_service.analyze_query(query_text)
+                enhanced_response = enhanced_llm_service.generate_enhanced_response(
+                    query_text, query_analysis, result.__dict__
+                )
+                response.explanation = enhanced_response.answer
+                response.follow_up_suggestions = enhanced_response.follow_up_suggestions
+                response.data_insights = enhanced_response.data_insights
+            except Exception as e:
+                print(f"Enhanced LLM explanation failed: {e}")
+                # Fallback to regular LLM
+                if llm_service.is_available and result.specimens:
+                    try:
+                        # Format specimens for LLM (limit to first 10 for brevity)
+                        sample_specimens = result.specimens[:10]
+                        specimens_text = "\n".join([
+                            f"- Subject {s['subject_id']}: {s['subject_sex']}, {s['subject_age']} years old, {s['race']}, {s['manner_of_death']}"
+                            for s in sample_specimens if s.get('subject_id')
+                        ])
+
+                        prompt = f"""Based on the following brain research query results, provide a brief, natural language summary:
+
+Query: {result.query_summary}
+
+Sample Results:
+{specimens_text}
+
+Provide a 1-2 sentence summary of the research cohort and any notable patterns in demographics or clinical characteristics."""
+
+                        explanation = llm_service._client.chat.completions.create(  # type: ignore
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": prompt}],
+                            max_tokens=150,
+                            temperature=0.7,
+                        )
+                        response.explanation = explanation.choices[0].message.content.strip()
+                    except Exception as e:
+                        print(f"Fallback LLM explanation failed: {e}")
+        elif request.explain and llm_service.is_available and result.specimens:
+            try:
+                # Regular LLM fallback
                 sample_specimens = result.specimens[:10]
                 specimens_text = "\n".join([
                     f"- Subject {s['subject_id']}: {s['subject_sex']}, {s['subject_age']} years old, {s['race']}, {s['manner_of_death']}"
